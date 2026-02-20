@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Parcel } from './database';
+import { getAllParcels, initDatabase, Parcel } from './database';
 import Sidebar from './components/Sidebar';
 import ParcelList from './components/ParcelList';
 import ParcelDetail from './components/ParcelDetail';
@@ -9,6 +9,9 @@ import { applyTheme, getSavedTheme, Theme } from './theme';
 type View = 'list' | 'detail' | 'new';
 
 export default function App() {
+  useEffect(() => {
+    initDatabase();
+  }, []);
   const [view, setView] = useState<View>('list');
   const [selectedParcel, setSelectedParcel] = useState<Parcel | null>(null);
   const [theme, setTheme] = useState<Theme>(getSavedTheme());

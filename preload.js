@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   scanFolderForPdfs: (folderPath) =>
     ipcRenderer.invoke("scan-folder-for-pdfs", folderPath),
   pickFolder: () => ipcRenderer.invoke("pick-folder"),
+  loadParcels: () => ipcRenderer.invoke("load-parcels"),
+  saveParcels: (parcels) => ipcRenderer.invoke("save-parcels", parcels),
   claudeExtractTaxCard: (data) =>
     ipcRenderer.invoke("claude-extract-tax-card", data),
   copyFileToFolder: (data) => ipcRenderer.invoke("copy-file-to-folder", data),

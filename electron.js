@@ -297,6 +297,28 @@ ipcMain.handle('copy-file-to-folder', async (event, { sourcePath, destFolder, fi
   }
 });
 
+// Shared parcels data file
+const PARCELS_FILE = path.join(app.getPath('documents'), 'TitleCRM', 'parcels.json');
+
+ipcMain.handle('load-parcels', async () => {
+  try {
+    if (!fs.existsSync(PARCELS_FILE)) return [];
+    const raw = fs.readFileSync(PARCELS_FILE, 'utf8');
+    return JSON.parse(raw);
+  } catch { return []; }
+});
+
+ipcMain.handle('save-parcels', async (event, parcels) => {
+  try {
+    const dir = path.dirname(PARCELS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(PARCELS_FILE, JSON.stringify(parcels, null, 2));
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 // Open native folder picker dialog
 ipcMain.handle("pick-folder", async (event) => {
   const { dialog } = require("electron");
