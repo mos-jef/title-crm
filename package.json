@@ -2,6 +2,8 @@
   "name": "title-crm",
   "version": "0.1.0",
   "private": true,
+  "description": "Title CRM - Parcel management application",
+  "author": "Jeffjitsu",
   "main": "electron.js",
   "homepage": "./",
   "dependencies": {
@@ -14,7 +16,9 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.3.1",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.4.624",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.0",
@@ -35,7 +39,7 @@
   "build": {
     "appId": "com.titlecrm.app",
     "productName": "Title CRM",
-    "main": "electron.js",
+    "extends": null,
     "directories": {
       "output": "dist"
     },
@@ -53,8 +57,13 @@
       "build/**/*",
       "electron.js",
       "preload.js",
-      "node_modules/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/better-sqlite3",
+        "to": "node_modules/better-sqlite3"
+      }
     ]
   },
   "eslintConfig": {

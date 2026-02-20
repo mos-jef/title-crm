@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Parcel, getAllParcels, toggleComplete } from '../database';
+import BatchTaxImporter from './BatchTaxImporter';
 
 interface Props {
   onSelectParcel: (parcel: Parcel) => void;
@@ -9,6 +10,7 @@ export default function ParcelList({ onSelectParcel }: Props) {
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [showBatchImporter, setShowBatchImporter] = useState(false);
 
   function load() {
     setParcels(getAllParcels());
@@ -48,6 +50,13 @@ export default function ParcelList({ onSelectParcel }: Props) {
             {pending} pending · {done} completed · {parcels.length} total
           </div>
         </div>
+        <button
+          className="btn-secondary"
+          onClick={() => setShowBatchImporter(true)}
+          style={{ fontSize: 13, padding: '8px 14px' }}
+        >
+          📥 Batch Import Tax Cards
+        </button>
       </div>
 
       <div className="filter-bar">
@@ -91,12 +100,12 @@ export default function ParcelList({ onSelectParcel }: Props) {
               <div className="parcel-apn">{parcel.apn || 'No APN'}</div>
               <div className="parcel-owner">
                 {parcel.assessedOwner || parcel.legalOwner || 'No owner listed'}
-                </div>   
+              </div>
               <div className="parcel-meta">
                 {parcel.county}{parcel.state ? `, ${parcel.state}` : ''}
                 {parcel.acres ? ` · ${parcel.acres} acres` : ''}
                 {parcel.tractType ? ` · ${parcel.tractType}` : ''}
-                </div>    
+              </div>
             </div>
             <span className={`status-badge ${parcel.completed ? 'done' : 'pending'}`}>
               {parcel.completed ? '✓ Done' : 'Pending'}
@@ -104,6 +113,16 @@ export default function ParcelList({ onSelectParcel }: Props) {
           </div>
         ))}
       </div>
+
+      {showBatchImporter && (
+        <BatchTaxImporter
+          onClose={() => setShowBatchImporter(false)}
+          onComplete={() => {
+            load();
+            setShowBatchImporter(false);
+          }}
+        />
+      )}
     </div>
   );
 }

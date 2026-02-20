@@ -10,4 +10,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openFile: (filePath) => ipcRenderer.invoke("open-file", filePath),
   deleteParcelFolder: (folderPath) =>
     ipcRenderer.invoke("delete-parcel-folder", folderPath),
+  readPdfBase64: (filePath) => ipcRenderer.invoke("read-pdf-base64", filePath),
+  savePackagePdf: (data) => ipcRenderer.invoke("save-package-pdf", data),
+  readFileBase64: (filePath) =>
+    ipcRenderer.invoke("read-file-base64", filePath),
+  scanFolderForPdfs: (folderPath) =>
+    ipcRenderer.invoke("scan-folder-for-pdfs", folderPath),
+  pickFolder: () => ipcRenderer.invoke("pick-folder"),
+  claudeExtractTaxCard: (data) =>
+    ipcRenderer.invoke("claude-extract-tax-card", data),
+  copyFileToFolder: (data) => ipcRenderer.invoke("copy-file-to-folder", data),
+  pickPdfFile: () => ipcRenderer.invoke("pick-pdf-file"),
 });

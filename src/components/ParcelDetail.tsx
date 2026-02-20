@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { deleteParcel, Parcel, toggleComplete, upsertParcel } from '../database';
 import ParcelSummary from './ParcelSummary';
+import TaxCardReader from './TaxCardReader';
+import PackageBuilder from './PackageBuilder';
 
 interface Props {
   parcel: Parcel;
@@ -25,7 +27,9 @@ export default function ParcelDetail({ parcel: initialParcel, onBack }: Props) {
   const [files, setFiles] = useState<Record<string, { name: string; path: string }[]>>({});
   const [draggingOver, setDraggingOver] = useState<string | null>(null);
   
-  const [showSummary, setShowSummary] = useState(false);  
+  const [showSummary, setShowSummary] = useState(false);
+  const [showTaxReader, setShowTaxReader] = useState(false);
+  const [showPackageBuilder, setShowPackageBuilder] = useState(false);  
 
   const loadFiles = useCallback(async () => {
     if ((window as any).electronAPI && parcel.folderPath) {
@@ -153,12 +157,22 @@ export default function ParcelDetail({ parcel: initialParcel, onBack }: Props) {
             )}
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {parcel.folderPath && (
+             {parcel.folderPath && (
               <button className="btn-secondary" onClick={handleOpenFolder}
                 style={{ fontSize: 13, padding: '8px 14px' }}>
                 📁 Open Folder
               </button>
             )}
+            <button className="btn-secondary"
+              onClick={() => setShowTaxReader(true)}
+              style={{ fontSize: 13, padding: '8px 14px' }}>
+              🧾 Read Tax Card
+            </button>
+            <button className="btn-secondary"
+              onClick={() => setShowPackageBuilder(true)}
+              style={{ fontSize: 13, padding: '8px 14px' }}>
+              📦 Build Package
+            </button>
             <button
               className={parcel.completed ? 'btn-secondary' : 'btn-primary'}
               onClick={handleToggleComplete}
@@ -295,6 +309,26 @@ export default function ParcelDetail({ parcel: initialParcel, onBack }: Props) {
           })}
         </div>
       </div>
+    {showTaxReader && (
+        <TaxCardReader
+          parcel={parcel}
+          onFieldsExtracted={(fields) => {
+            const updated = { ...parcel, ...fields, updatedAt: new Date().toISOString() };
+            upsertParcel(updated);
+            setParcel(updated);
+            setForm(updated);
+          }}
+          onClose={() => setShowTaxReader(false)}
+        />
+      )}
+
+      {showPackageBuilder && (
+        <PackageBuilder
+          parcel={parcel}
+          files={files}
+          onClose={() => setShowPackageBuilder(false)}
+        />
+      )}
     </div>
   );
 }
