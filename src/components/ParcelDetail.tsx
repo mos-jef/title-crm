@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { deleteParcel, Parcel, toggleComplete, upsertParcel } from '../database';
+import { deleteParcel, formatBriefLegal, Parcel, toggleComplete, upsertParcel } from '../database';
 import ParcelSummary from './ParcelSummary';
 import TaxCardReader from './TaxCardReader';
 import PackageBuilder from './PackageBuilder';
@@ -96,10 +96,10 @@ export default function ParcelDetail({ parcel: initialParcel, onBack }: Props) {
     }
   }
 
-  function handleToggleComplete() {
-    toggleComplete(parcel.id);
+  async function handleToggleComplete() {
+    await toggleComplete(parcel.id);
     setParcel(p => ({ ...p, completed: !p.completed }));
-    }
+  }
     
     async function handleDelete() {
     const confirmed = window.confirm(
@@ -109,7 +109,7 @@ export default function ParcelDetail({ parcel: initialParcel, onBack }: Props) {
     if ((window as any).electronAPI && parcel.folderPath) {
       await (window as any).electronAPI.deleteParcelFolder(parcel.folderPath);
     }
-    deleteParcel(parcel.id);
+    await deleteParcel(parcel.id);
     onBack();
   }
 
@@ -134,6 +134,7 @@ export default function ParcelDetail({ parcel: initialParcel, onBack }: Props) {
     { label: 'Legal Owner', field: 'legalOwner' },
     { label: 'Brief Legal', field: 'briefLegal' },
     { label: 'Legal Description', field: 'legalDescription' },
+    { label: 'Notes', field: 'notes' }
   ];
 
   return (
@@ -234,16 +235,22 @@ export default function ParcelDetail({ parcel: initialParcel, onBack }: Props) {
               <button className="btn-secondary" onClick={() => setEditing(false)}>Cancel</button>
             </div>
           </>
+
         ) : (
           <div className="field-grid">
             {fields.map(({ label, field }) => (
               <div className="field-group" key={field}>
                 <div className="field-label">{label}</div>
-                <div className="field-value">{(parcel as any)[field] || '—'}</div>
+                <div className="field-value">
+                  {field === 'briefLegal'
+                    ? formatBriefLegal(parcel) || '—'
+                    : (parcel as any)[field] || '—'}
+                </div>
               </div>
             ))}
           </div>
         )}
+
       </div>
 
       {/* Documents */}

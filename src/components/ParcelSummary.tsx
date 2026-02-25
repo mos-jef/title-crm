@@ -1,5 +1,5 @@
 import React from 'react';
-import { Parcel } from '../database';
+import { Parcel, formatBriefLegal } from '../database';
 
 interface Props {
   parcel: Parcel;
@@ -35,7 +35,7 @@ export default function ParcelSummary({ parcel, onClose }: Props) {
             { label: 'Owner', value: parcel.assessedOwner || parcel.legalOwner },
             { label: 'Vesting Deed No.', value: parcel.vestingDeedNo },
             { label: 'Acreage', value: parcel.acres },
-            { label: 'Brief Legal', value: parcel.briefLegal },
+            { label: 'Brief Legal', value: formatBriefLegal(parcel) },
           ].map(({ label, value }) => (
             <div className="summary-row" key={label}>
               <div className="summary-label">{label}:</div>

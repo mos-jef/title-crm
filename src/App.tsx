@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { getAllParcels, initDatabase, Parcel } from './database';
+import { Parcel, initDatabase, loadParcelsFromFirestore } from './database';
+import { AuthProvider, useAuth } from './AuthContext';
 import Sidebar from './components/Sidebar';
 import ParcelList from './components/ParcelList';
 import ParcelDetail from './components/ParcelDetail';
 import NewParcelForm from './components/NewParcelForm';
+import LoginScreen from './components/LoginScreen';
+import AdminView from './components/AdminView';
 import { applyTheme, getSavedTheme, Theme } from './theme';
 
-type View = 'list' | 'detail' | 'new';
+type View = 'list' | 'detail' | 'new' | 'admin';
 
-export default function App() {
-  useEffect(() => {
-    initDatabase();
-  }, []);
+function AppInner() {
+  const { user, profile, loading } = useAuth();
   const [view, setView] = useState<View>('list');
   const [selectedParcel, setSelectedParcel] = useState<Parcel | null>(null);
   const [theme, setTheme] = useState<Theme>(getSavedTheme());
@@ -19,6 +20,29 @@ export default function App() {
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+
+  // When user logs in, load their parcels from Firestore
+  useEffect(() => {
+    if (user) {
+      initDatabase().then(() => loadParcelsFromFirestore());
+    }
+  }, [user]);
+
+  if (loading) return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'var(--bg-primary)',
+      color: 'var(--text-muted)',
+      fontSize: 16,
+    }}>
+      Loading...
+    </div>
+  );
+
+  if (!user) return <LoginScreen />;
 
   function toggleTheme() {
     const next: Theme = theme === 'dark' ? 'light' : 'dark';
@@ -49,6 +73,8 @@ export default function App() {
         onShowList={handleBack}
         onToggleTheme={toggleTheme}
         theme={theme}
+        profile={profile}
+        onAdmin={profile?.isAdmin ? () => setView('admin') : undefined}
       />
       <main className="main-content">
         {view === 'list' && (
@@ -60,7 +86,18 @@ export default function App() {
         {view === 'new' && (
           <NewParcelForm onBack={handleBack} onSaved={handleParcelSaved} />
         )}
+        {view === 'admin' && profile?.isAdmin && (
+          <AdminView />
+        )}
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   );
 }

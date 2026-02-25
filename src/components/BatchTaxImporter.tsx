@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getAllParcels, Parcel, upsertParcel } from '../database';
+import { loadParcelsFromFirestore, Parcel, upsertParcel } from '../database';
 
 interface Props {
   onClose: () => void;
@@ -8,7 +8,7 @@ interface Props {
 
 interface FileResult {
   fileName: string;
-  status: 'pending' | 'processing' | 'matched' | 'no-match' | 'error';
+  status: 'pending' | 'processing' | 'matched' | 'no-match' | 'created' | 'error';
   apn?: string;
   matchedParcel?: string;
   error?: string;
@@ -23,6 +23,10 @@ async function extractFromPdf(base64: string): Promise<any> {
 
 function normalizeApn(raw: string): string {
   return (raw || '').replace(/[\s\-.]/g, '').toLowerCase();
+}
+
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
 export default function BatchTaxImporter({ onClose, onComplete }: Props) {
@@ -56,19 +60,16 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
     setRunning(true);
     setDone(false);
 
-    const allParcels = getAllParcels();
-
+    const allParcels = await loadParcelsFromFirestore();
     const updated = [...results];
 
     for (let i = 0; i < updated.length; i++) {
       const item = updated[i] as any;
 
-      // Mark as processing
       updated[i] = { ...updated[i], status: 'processing' };
       setResults([...updated]);
 
       try {
-        // Read PDF
         const readResult = await (window as any).electronAPI.readPdfBase64(item.filePath);
         if (!readResult.success) {
           updated[i] = { ...updated[i], status: 'error', error: 'Could not read file' };
@@ -76,27 +77,96 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
           continue;
         }
 
-        // Extract with Claude
         const extractedRaw = await extractFromPdf(readResult.base64) as any;
         const extracted: Partial<Parcel> = extractedRaw;
         const apnRaw: string = extractedRaw.apnRaw || extracted.apn || '';
         const apnNorm = normalizeApn(extracted.apn || '');
 
-        // Match against existing parcels
-        const match = allParcels.find(p => normalizeApn(p.apn) === apnNorm);
-
-        if (!match) {
+        if (!apnNorm) {
           updated[i] = {
             ...updated[i],
-            status: 'no-match',
-            apn: apnRaw || 'not found',
-            extracted,
+            status: 'error',
+            error: 'Could not extract APN from PDF',
           };
           setResults([...updated]);
           continue;
         }
 
-        // Update the matched parcel
+        let match = allParcels.find(p => normalizeApn(p.apn) === apnNorm);
+
+        // ── AUTO-CREATE if no match ──────────────────────────────────────────
+        if (!match) {
+          const newId = generateId();
+          const apnClean = extracted.apn || apnRaw;
+
+          // Create the folder structure on disk
+          let newFolderPath = '';
+
+          try {
+            const folderResult = await (window as any).electronAPI.createParcelFolder({
+              id: newId,
+              apn: apnClean,
+            });
+            console.log('createParcelFolder result:', JSON.stringify(folderResult));
+            if (folderResult?.success) {
+              newFolderPath = folderResult.path;
+            }
+          } catch (e) {
+            console.warn('Could not create folder for new parcel:', e);
+          }
+
+          const newParcel: Parcel = {
+            id: newId,
+            apn: apnClean,
+            mapParcelNo: extracted.mapParcelNo || '',
+            county: extracted.county || '',
+            state: extracted.state || '',
+            address: extracted.address || '',
+            assessedOwner: extracted.assessedOwner || '',
+            legalOwner: extracted.legalOwner || '',
+            legalDescription: extracted.legalDescription || '',
+            briefLegal: extracted.briefLegal || '',
+            tractType: '',
+            acres: extracted.acres || '',
+            vestingDeedNo: '',
+            completed: false,
+            folderPath: newFolderPath,
+            notes: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          await upsertParcel(newParcel);
+          allParcels.push(newParcel);
+          match = newParcel;
+
+          // Copy tax card into new parcel's Taxes folder
+          if (newFolderPath) {
+            try {
+              await (window as any).electronAPI.copyFileToFolder({
+                sourcePath: item.filePath,
+                destFolder: newFolderPath + '\\Taxes',
+                fileName: `TaxCard_${apnClean}.pdf`,
+              });
+            } catch (e) {
+              console.warn('Could not copy tax card to new parcel folder:', e);
+            }
+          }
+
+          updated[i] = {
+            ...updated[i],
+            status: 'created',
+            apn: apnRaw,
+            matchedParcel: apnClean,
+            extracted,
+          };
+          setResults([...updated]);
+
+          await new Promise(r => setTimeout(r, 800));
+          continue;
+        }
+
+        // ── EXISTING MATCH — update fields ───────────────────────────────────
         const updatedParcel: Parcel = {
           ...match,
           assessedOwner: extracted.assessedOwner || match.assessedOwner,
@@ -110,15 +180,14 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
           state: extracted.state || match.state,
           updatedAt: new Date().toISOString(),
         };
-        upsertParcel(updatedParcel);
+        await upsertParcel(updatedParcel);
 
-        // Copy the tax card PDF into the matched parcel's Taxes folder
         if (match.folderPath) {
           try {
             await (window as any).electronAPI.copyFileToFolder({
               sourcePath: item.filePath,
               destFolder: match.folderPath + '\\Taxes',
-              fileName: item.fileName,
+              fileName: `TaxCard_${match.apn}.pdf`,
             });
           } catch (e) {
             console.warn('Could not copy tax card file:', e);
@@ -143,7 +212,6 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
         setResults([...updated]);
       }
 
-      // Small delay to avoid API rate limiting
       await new Promise(r => setTimeout(r, 800));
     }
 
@@ -155,12 +223,14 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
   const counts = {
     pending: results.filter(r => r.status === 'pending').length,
     matched: results.filter(r => r.status === 'matched').length,
+    created: results.filter(r => r.status === 'created').length,
     noMatch: results.filter(r => r.status === 'no-match').length,
     error: results.filter(r => r.status === 'error').length,
   };
 
   const statusColor = (s: FileResult['status']) => {
     if (s === 'matched') return '#86efac';
+    if (s === 'created') return '#a78bfa';
     if (s === 'no-match') return '#fbbf24';
     if (s === 'error') return '#f87171';
     if (s === 'processing') return '#60a5fa';
@@ -169,6 +239,7 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
 
   const statusLabel = (s: FileResult['status']) => {
     if (s === 'matched') return '✓ Matched & Updated';
+    if (s === 'created') return '✦ New Parcel Created';
     if (s === 'no-match') return '⚠ No Matching Parcel';
     if (s === 'error') return '✕ Error';
     if (s === 'processing') return '⟳ Processing...';
@@ -192,11 +263,10 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 6, marginBottom: 0 }}>
             Select a folder of tax card PDFs. Claude will read each one, extract the APN and all
-            parcel fields, then automatically update any matching parcel in your CRM.
+            parcel fields, then update existing parcels or create new ones automatically.
           </p>
         </div>
 
-        {/* Step 1: Folder selection */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className="btn-secondary" onClick={handleSelectFolder} disabled={running}>
             📂 Select Folder of PDFs
@@ -208,18 +278,17 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
           )}
         </div>
 
-        {/* Summary bar */}
         {results.length > 0 && (
           <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
             <span style={{ color: 'var(--text-muted)' }}>Total: {results.length}</span>
             {counts.matched > 0 && <span style={{ color: '#86efac' }}>✓ {counts.matched} matched</span>}
+            {counts.created > 0 && <span style={{ color: '#a78bfa' }}>✦ {counts.created} created</span>}
             {counts.noMatch > 0 && <span style={{ color: '#fbbf24' }}>⚠ {counts.noMatch} unmatched</span>}
             {counts.error > 0 && <span style={{ color: '#f87171' }}>✕ {counts.error} errors</span>}
             {counts.pending > 0 && <span style={{ color: 'var(--text-muted)' }}>— {counts.pending} pending</span>}
           </div>
         )}
 
-        {/* Results list */}
         {results.length > 0 && (
           <div style={{
             flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6,
@@ -250,20 +319,16 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
           </div>
         )}
 
-        {/* No-match note */}
-        {done && counts.noMatch > 0 && (
+        {done && counts.error > 0 && (
           <div style={{
-            padding: '10px 14px', background: 'rgba(251,191,36,0.1)',
-            border: '1px solid rgba(251,191,36,0.3)', borderRadius: 8,
-            fontSize: 12, color: '#fbbf24',
+            padding: '10px 14px', background: 'rgba(248,113,113,0.1)',
+            border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8,
+            fontSize: 12, color: '#f87171',
           }}>
-            ⚠ {counts.noMatch} file{counts.noMatch !== 1 ? 's' : ''} could not be matched to an
-            existing parcel. The APN from the tax card didn't match any parcel in your CRM.
-            You may need to create those parcels first, or the APN format may differ.
+            ✕ {counts.error} file{counts.error !== 1 ? 's' : ''} encountered errors during processing.
           </div>
         )}
 
-        {/* Action buttons */}
         <div style={{ display: 'flex', gap: 12 }}>
           {!done ? (
             <button
@@ -271,7 +336,9 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
               onClick={handleRun}
               disabled={running || results.length === 0}
             >
-              {running ? `Processing... (${counts.matched + counts.noMatch + counts.error}/${results.length})` : `▶ Run Import (${results.length} files)`}
+              {running
+                ? `Processing... (${counts.matched + counts.created + counts.noMatch + counts.error}/${results.length})`
+                : `▶ Run Import (${results.length} files)`}
             </button>
           ) : (
             <button className="btn-primary" onClick={onClose}>

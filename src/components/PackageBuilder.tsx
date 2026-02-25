@@ -1,6 +1,6 @@
 import { PDFDocument, PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import { useState } from 'react';
-import { Parcel } from '../database';
+import { Parcel, formatBriefLegal } from '../database';
 
 interface Props {
   parcel: Parcel;
@@ -48,7 +48,7 @@ export default function PackageBuilder({ parcel, files, onClose }: Props) {
         ['Owner:', sanitizeText(parcel.assessedOwner || parcel.legalOwner || '')],
         ['Vesting Deed No.:', sanitizeText(parcel.vestingDeedNo || '')],
         ['Acreage:', sanitizeText(parcel.acres || '')],
-        ['Brief Legal:', sanitizeText(parcel.briefLegal || '')],
+        ['Brief Legal:', sanitizeText(formatBriefLegal(parcel))],
       ];
 
       let y = 700;

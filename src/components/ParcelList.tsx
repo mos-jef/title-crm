@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Parcel, getAllParcels, toggleComplete } from '../database';
+import { Parcel, getAllParcels, toggleComplete, loadParcelsFromFirestore } from '../database';
+import BatchPropertyCardImporter from './BatchPropertyCardImporter';
 import BatchTaxImporter from './BatchTaxImporter';
 
 interface Props {
@@ -11,16 +12,19 @@ export default function ParcelList({ onSelectParcel }: Props) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [showBatchImporter, setShowBatchImporter] = useState(false);
+  const [showPropertyCardImporter, setShowPropertyCardImporter] = useState(false);
 
   function load() {
     setParcels(getAllParcels());
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    loadParcelsFromFirestore().then(() => load());
+  }, []);
 
-  function handleToggle(e: React.MouseEvent, id: string) {
+  async function handleToggle(e: React.MouseEvent, id: string) {
     e.stopPropagation();
-    toggleComplete(id);
+    await toggleComplete(id);
     load();
   }
 
@@ -50,12 +54,20 @@ export default function ParcelList({ onSelectParcel }: Props) {
             {pending} pending · {done} completed · {parcels.length} total
           </div>
         </div>
+
         <button
           className="btn-secondary"
           onClick={() => setShowBatchImporter(true)}
           style={{ fontSize: 13, padding: '8px 14px' }}
         >
           📥 Batch Import Tax Cards
+        </button>
+        <button
+          className="btn-secondary"
+          onClick={() => setShowPropertyCardImporter(true)}
+          style={{ fontSize: 13, padding: '8px 14px' }}
+        >
+          🗺 Batch Import Property Cards
         </button>
       </div>
 
@@ -120,6 +132,16 @@ export default function ParcelList({ onSelectParcel }: Props) {
           onComplete={() => {
             load();
             setShowBatchImporter(false);
+          }}
+        />
+      )}
+
+      {showPropertyCardImporter && (
+        <BatchPropertyCardImporter
+          onClose={() => setShowPropertyCardImporter(false)}
+          onComplete={() => {
+            load();
+            setShowPropertyCardImporter(false);
           }}
         />
       )}

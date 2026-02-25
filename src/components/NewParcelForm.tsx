@@ -21,6 +21,7 @@ export default function NewParcelForm({ onBack, onSaved }: Props) {
     legalDescription: '',
     briefLegal: '',
     vestingDeedNo: '',
+    notes: '',
   });
 
   function handleChange(field: string, value: string) {
@@ -49,7 +50,7 @@ export default function NewParcelForm({ onBack, onSaved }: Props) {
       }
     }
 
-    upsertParcel(parcel);
+    await upsertParcel(parcel);
     onSaved(parcel);
   }
 
@@ -116,14 +117,25 @@ export default function NewParcelForm({ onBack, onSaved }: Props) {
             <input className="field-input" value={form.briefLegal}
               onChange={e => handleChange('briefLegal', e.target.value)} />
           </div>
+
           <div className="field-group">
             <label className="field-label">Legal Description</label>
             <textarea className="field-input textarea" value={form.legalDescription}
               onChange={e => handleChange('legalDescription', e.target.value)} />
           </div>
+          <div className="field-group">
+            <label className="field-label">Notes</label>
+            <textarea className="field-input textarea"
+              value={form.notes || ''}
+              onChange={e => handleChange('notes', e.target.value)}
+              rows={12}
+              placeholder="Internal notes about this parcel..."
+              style={{ resize: 'vertical', minHeight: 200, fontFamily: 'inherit', lineHeight: 1.6 }} />
+          </div>
         </div>
       </div>
       <div className="form-actions">
+
         <button className="btn-primary" onClick={handleSave}>Save Parcel</button>
         <button className="btn-secondary" onClick={onBack}>Cancel</button>
       </div>
