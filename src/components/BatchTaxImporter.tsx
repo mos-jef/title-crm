@@ -162,22 +162,22 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
           };
           setResults([...updated]);
 
-          await new Promise(r => setTimeout(r, 800));
+          await new Promise(r => setTimeout(r, 25000));
           continue;
         }
 
         // ── EXISTING MATCH — update fields ───────────────────────────────────
         const updatedParcel: Parcel = {
           ...match,
-          assessedOwner: extracted.assessedOwner || match.assessedOwner,
-          legalOwner: extracted.legalOwner || match.legalOwner,
-          acres: extracted.acres || match.acres,
-          briefLegal: extracted.briefLegal || match.briefLegal,
-          legalDescription: extracted.legalDescription || match.legalDescription,
-          mapParcelNo: extracted.mapParcelNo || match.mapParcelNo,
-          address: extracted.address || match.address,
-          county: extracted.county || match.county,
-          state: extracted.state || match.state,
+          assessedOwner: match.assessedOwner || extracted.assessedOwner || '',
+          legalOwner: match.legalOwner || extracted.legalOwner || '',
+          acres: match.acres || extracted.acres || '',
+          briefLegal: match.briefLegal || extracted.briefLegal || '',
+          legalDescription: match.legalDescription || extracted.legalDescription || '',
+          mapParcelNo: match.mapParcelNo || extracted.mapParcelNo || '',
+          address: match.address || extracted.address || '',
+          county: match.county || extracted.county || '',
+          state: match.state || extracted.state || '',
           updatedAt: new Date().toISOString(),
         };
         await upsertParcel(updatedParcel);
@@ -187,7 +187,7 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
             await (window as any).electronAPI.copyFileToFolder({
               sourcePath: item.filePath,
               destFolder: match.folderPath + '\\Taxes',
-              fileName: `TaxCard_${match.apn}.pdf`,
+              fileName: `${match.apn}_TC.pdf`,
             });
           } catch (e) {
             console.warn('Could not copy tax card file:', e);
@@ -212,7 +212,7 @@ export default function BatchTaxImporter({ onClose, onComplete }: Props) {
         setResults([...updated]);
       }
 
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 25000));
     }
 
     setRunning(false);

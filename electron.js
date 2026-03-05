@@ -273,42 +273,53 @@ Return ONLY the JSON object. No explanation, no markdown.`,
 });
 
 // Native file picker for single PDF
-ipcMain.handle('pick-pdf-file', async (event) => {
-  const { dialog } = require('electron');
+ipcMain.handle("pick-pdf-file", async (event) => {
+  const { dialog } = require("electron");
   const result = await dialog.showOpenDialog({
-    properties: ['openFile'],
-    filters: [{ name: 'PDF Files', extensions: ['pdf', 'png', 'jpg', 'jpeg'] }],
+    properties: ["openFile"],
+    filters: [{ name: "PDF Files", extensions: ["pdf", "png", "jpg", "jpeg"] }],
   });
-  if (result.canceled || result.filePaths.length === 0) return { success: false };
+  if (result.canceled || result.filePaths.length === 0)
+    return { success: false };
   const filePath = result.filePaths[0];
   const fileName = path.basename(filePath);
   return { success: true, filePath, fileName };
 });
 
 // Copy a file into a parcel's category subfolder
-ipcMain.handle('copy-file-to-folder', async (event, { sourcePath, destFolder, fileName }) => {
+ipcMain.handle(
+  "copy-file-to-folder",
+  async (event, { sourcePath, destFolder, fileName }) => {
+    try {
+      if (!fs.existsSync(destFolder))
+        fs.mkdirSync(destFolder, { recursive: true });
+      const destPath = path.join(destFolder, fileName);
+      fs.copyFileSync(sourcePath, destPath);
+      return { success: true, destPath };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+);
+
+// Shared parcels data file
+const PARCELS_FILE = path.join(
+  app.getPath("documents"),
+  "TitleCRM",
+  "parcels.json",
+);
+
+ipcMain.handle("load-parcels", async () => {
   try {
-    if (!fs.existsSync(destFolder)) fs.mkdirSync(destFolder, { recursive: true });
-    const destPath = path.join(destFolder, fileName);
-    fs.copyFileSync(sourcePath, destPath);
-    return { success: true, destPath };
-  } catch (err) {
-    return { success: false, error: err.message };
+    if (!fs.existsSync(PARCELS_FILE)) return [];
+    const raw = fs.readFileSync(PARCELS_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return [];
   }
 });
 
-// Shared parcels data file
-const PARCELS_FILE = path.join(app.getPath('documents'), 'TitleCRM', 'parcels.json');
-
-ipcMain.handle('load-parcels', async () => {
-  try {
-    if (!fs.existsSync(PARCELS_FILE)) return [];
-    const raw = fs.readFileSync(PARCELS_FILE, 'utf8');
-    return JSON.parse(raw);
-  } catch { return []; }
-});
-
-ipcMain.handle('save-parcels', async (event, parcels) => {
+ipcMain.handle("save-parcels", async (event, parcels) => {
   try {
     const dir = path.dirname(PARCELS_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -342,4 +353,44 @@ ipcMain.handle("scan-folder-for-pdfs", async (event, folderPath) => {
   } catch (err) {
     return { success: false, error: err.message, files: [] };
   }
+});
+
+// Scan the main Parcels directory and return all subfolders
+ipcMain.handle("scan-parcels-directory", async (event, customPath) => {
+  const basePath =
+    customPath || path.join(app.getPath("documents"), "TitleCRM", "Parcels");
+  try {
+    if (!fs.existsSync(basePath)) return { success: false, folders: [] };
+    const entries = fs.readdirSync(basePath, { withFileTypes: true });
+    const folders = entries
+      .filter((e) => e.isDirectory())
+      .map((e) => ({
+        name: e.name,
+        path: path.join(basePath, e.name),
+      }));
+    return { success: true, basePath, folders };
+  } catch (err) {
+    return { success: false, error: err.message, folders: [] };
+  }
+});
+
+// List all files in a specific folder
+ipcMain.handle("list-files-in-folder", async (event, folderPath) => {
+  try {
+    if (!fs.existsSync(folderPath)) return { success: true, files: [] };
+    const entries = fs.readdirSync(folderPath);
+    const files = entries
+      .filter((f) => !f.startsWith("."))
+      .map((f) => ({ name: f, path: path.join(folderPath, f) }));
+    return { success: true, files };
+  } catch (err) {
+    return { success: false, error: err.message, files: [] };
+  }
+});
+
+// Return Claude API key to renderer
+ipcMain.handle("get-claude-api-key", async () => {
+  return (
+    process.env.REACT_APP_CLAUDE_API_KEY || process.env.CLAUDE_API_KEY || ""
+  );
 });

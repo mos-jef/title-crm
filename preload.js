@@ -23,4 +23,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("claude-extract-tax-card", data),
   copyFileToFolder: (data) => ipcRenderer.invoke("copy-file-to-folder", data),
   pickPdfFile: () => ipcRenderer.invoke("pick-pdf-file"),
+  scanParcelsDirectory: () => ipcRenderer.invoke("scan-parcels-directory"),
+  listFilesInFolder: (folderPath) =>
+    ipcRenderer.invoke("list-files-in-folder", folderPath),
+  getClaudeApiKey: () => ipcRenderer.invoke("get-claude-api-key"),
 });

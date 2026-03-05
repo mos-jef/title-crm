@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Parcel } from '../database';
+import ParcelRecovery from './ParcelRecovery';
 
 interface UserSummary {
   uid: string;
@@ -14,6 +15,7 @@ export default function AdminView() {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [showRecovery, setShowRecovery] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -49,14 +51,36 @@ export default function AdminView() {
   }, []);
 
   if (loading) return (
-    <div style={{ color: 'var(--text-muted)', padding: 40 }}>Loading all accounts...</div>
+    <div style={{ padding: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <h2 style={{ color: 'var(--text-primary)', margin: 0 }}>
+          Admin — All Accounts
+        </h2>
+        <button className="btn-primary" onClick={() => setShowRecovery(true)}
+          style={{ fontSize: 13, padding: '8px 14px' }}>
+          🔄 Run Parcel Recovery
+        </button>
+      </div>
+      <div style={{ color: 'var(--text-muted)' }}>Loading accounts...</div>
+      {showRecovery && <ParcelRecovery onClose={() => setShowRecovery(false)} />}
+    </div>
   );
+
+  
 
   return (
     <div style={{ padding: 32 }}>
-      <h2 style={{ color: 'var(--text-primary)', marginBottom: 24 }}>
-        Admin — All Accounts
-      </h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <h2 style={{ color: 'var(--text-primary)', margin: 0 }}>
+          Admin — All Accounts
+        </h2>
+        <button className="btn-primary" onClick={() => setShowRecovery(true)}
+          style={{ fontSize: 13, padding: '8px 14px' }}>
+          🔄 Run Parcel Recovery
+        </button>
+      </div>
+
+      {showRecovery && <ParcelRecovery onClose={() => setShowRecovery(false)} />}
 
       {users.length === 0 && (
         <div style={{ color: 'var(--text-muted)' }}>No users found.</div>

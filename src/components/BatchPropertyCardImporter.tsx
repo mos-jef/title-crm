@@ -94,7 +94,7 @@ export default function BatchPropertyCardImporter({ onClose, onComplete }: Props
           await (window as any).electronAPI.copyFileToFolder({
             sourcePath: item.filePath,
             destFolder: match.folderPath + '\\Maps',
-            fileName: `TaxMap_${match.apn}.pdf`,
+            fileName: `${match.apn}_TM.pdf`,
           });
         }
 
@@ -111,7 +111,7 @@ export default function BatchPropertyCardImporter({ onClose, onComplete }: Props
         setResults([...updated]);
       }
 
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 25000));
     }
 
     setRunning(false);

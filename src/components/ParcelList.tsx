@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Parcel, getAllParcels, toggleComplete, loadParcelsFromFirestore } from '../database';
 import BatchPropertyCardImporter from './BatchPropertyCardImporter';
 import BatchTaxImporter from './BatchTaxImporter';
+import ParcelRecovery from './ParcelRecovery';
 
 interface Props {
   onSelectParcel: (parcel: Parcel) => void;
@@ -13,6 +14,7 @@ export default function ParcelList({ onSelectParcel }: Props) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [showBatchImporter, setShowBatchImporter] = useState(false);
   const [showPropertyCardImporter, setShowPropertyCardImporter] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
 
   function load() {
     setParcels(getAllParcels());
