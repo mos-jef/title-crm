@@ -15,6 +15,7 @@ function AppInner() {
   const { user, profile, loading } = useAuth();
   const [view, setView] = useState<View>('list');
   const [selectedParcel, setSelectedParcel] = useState<Parcel | null>(null);
+  const [lastParcel, setLastParcel] = useState<Parcel | null>(null);
   const [theme, setTheme] = useState<Theme>(getSavedTheme());
 
   useEffect(() => {
@@ -44,12 +45,12 @@ function AppInner() {
 
   if (!user) return <LoginScreen />;
 
-  function toggleTheme() {
-    const next: Theme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
+  function handleThemeChange(newTheme: Theme) {
+    setTheme(newTheme);
   }
 
   function handleSelectParcel(parcel: Parcel) {
+    if (selectedParcel) setLastParcel(selectedParcel);
     setSelectedParcel(parcel);
     setView('detail');
   }
@@ -71,18 +72,30 @@ function AppInner() {
       <Sidebar
         onNewParcel={handleNewParcel}
         onShowList={handleBack}
-        onToggleTheme={toggleTheme}
+        onThemeChange={handleThemeChange}
         theme={theme}
         profile={profile}
         onAdmin={profile?.isAdmin ? () => setView('admin') : undefined}
       />
+
       <main className="main-content">
         {view === 'list' && (
           <ParcelList onSelectParcel={handleSelectParcel} />
         )}
+
         {view === 'detail' && selectedParcel && (
-          <ParcelDetail parcel={selectedParcel} onBack={handleBack} />
+          <ParcelDetail
+            parcel={selectedParcel}
+            onBack={handleBack}
+            onForward={lastParcel ? () => {
+              const temp = selectedParcel;
+              setSelectedParcel(lastParcel);
+              setLastParcel(temp);
+              setView('detail');
+            } : undefined}
+          />
         )}
+
         {view === 'new' && (
           <NewParcelForm onBack={handleBack} onSaved={handleParcelSaved} />
         )}

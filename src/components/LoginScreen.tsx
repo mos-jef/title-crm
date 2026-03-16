@@ -96,7 +96,7 @@ export default function LoginScreen() {
       }}>
         <div>
           <h1 style={{ color: 'var(--text-primary)', margin: 0, fontSize: 26 }}>
-            Title CRM
+            Co-Lab
           </h1>
           <p style={{ color: 'var(--text-muted)', margin: '6px 0 0', fontSize: 14 }}>
             {mode === 'login' && 'Sign in to your account'}

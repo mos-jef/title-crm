@@ -26,5 +26,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   scanParcelsDirectory: () => ipcRenderer.invoke("scan-parcels-directory"),
   listFilesInFolder: (folderPath) =>
     ipcRenderer.invoke("list-files-in-folder", folderPath),
-  getClaudeApiKey: () => ipcRenderer.invoke("get-claude-api-key"),
+  getClaudeApiKey: () => ipcRenderer.invoke('get-claude-api-key'),
+  copyToToSync: (data) => ipcRenderer.invoke('copy-to-tosync', data),
+  renameTosyncFile: (data) => ipcRenderer.invoke('rename-tosync-file', data),
+  deleteTosyncFile: (filePath) => ipcRenderer.invoke('delete-tosync-file', filePath),
+  syncToSharePoint: (data) => ipcRenderer.invoke('sync-to-sharepoint', data),
+  fetchCenterline: () => ipcRenderer.invoke('fetch-centerline'),
 });
+

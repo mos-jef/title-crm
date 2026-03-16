@@ -14,7 +14,7 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
     },
-    title: "Title CRM",
+    title: "Co-Lab",
   });
 
   const startUrl =
@@ -46,6 +46,7 @@ ipcMain.handle("create-parcel-folder", async (event, { id, apn }) => {
     "Chain",
     "Taxes",
     "Miscellaneous",
+    "ToSync",
   ];
 
   try {
@@ -125,6 +126,7 @@ ipcMain.handle("get-parcel-files", async (event, folderPath) => {
     "Chain",
     "Taxes",
     "Miscellaneous",
+    "ToSync",
   ];
   const result = {};
 
@@ -202,7 +204,23 @@ ipcMain.handle("read-file-base64", async (event, filePath) => {
 ipcMain.handle("claude-extract-tax-card", async (event, { base64 }) => {
   try {
     const apiKey =
-      process.env.REACT_APP_CLAUDE_API_KEY || process.env.CLAUDE_API_KEY || "";
+      process.env.REACT_APP_CLAUDE_API_KEY ||
+      process.env.CLAUDE_API_KEY ||
+      (function () {
+        try {
+          const envPath = require("path").join(
+            require("electron").app.getPath("userData"),
+            ".env",
+          );
+          const fs2 = require("fs");
+          if (fs2.existsSync(envPath)) {
+            const contents = fs2.readFileSync(envPath, "utf8");
+            const match = contents.match(/REACT_APP_CLAUDE_API_KEY=(.+)/);
+            if (match) return match[1].trim();
+          }
+        } catch {}
+        return "";
+      })();
     if (!apiKey) return { success: false, error: "No API key found in .env" };
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -393,4 +411,114 @@ ipcMain.handle("get-claude-api-key", async () => {
   return (
     process.env.REACT_APP_CLAUDE_API_KEY || process.env.CLAUDE_API_KEY || ""
   );
+});
+
+// Copy a file from one parcel category into ToSync (copy, not move)
+ipcMain.handle('copy-to-tosync', async (event, { sourcePath, toSyncFolder, fileName }) => {
+  try {
+    if (!fs.existsSync(toSyncFolder)) fs.mkdirSync(toSyncFolder, { recursive: true });
+    const destPath = path.join(toSyncFolder, fileName);
+    fs.copyFileSync(sourcePath, destPath);
+    return { success: true, destPath };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// Rename a file in ToSync
+ipcMain.handle('rename-tosync-file', async (event, { oldPath, newName }) => {
+  try {
+    const dir = path.dirname(oldPath);
+    const newPath = path.join(dir, newName);
+    fs.renameSync(oldPath, newPath);
+    return { success: true, newPath };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// Delete a file from ToSync only
+ipcMain.handle('delete-tosync-file', async (event, filePath) => {
+  try {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// Sync ToSync folder contents to SharePoint Vesting Title folder
+ipcMain.handle('sync-to-sharepoint', async (event, { toSyncFolder, tractNumber }) => {
+  try {
+    const sharePointBase = path.join(
+      require('os').homedir(),
+      'OneDrive - Universal Field Services, Inc',
+      'Division 7 - Strategic Execution Group - Centerline'
+    );
+    const destFolder = path.join(sharePointBase, tractNumber, '1. Vesting Title');
+
+    if (!fs.existsSync(destFolder)) {
+      return { success: false, error: `SharePoint folder not found: ${destFolder}` };
+    }
+    if (!fs.existsSync(toSyncFolder)) {
+      return { success: false, error: 'ToSync folder does not exist' };
+    }
+
+    const files = fs.readdirSync(toSyncFolder).filter(f => !f.startsWith('.'));
+    if (files.length === 0) return { success: true, copied: 0 };
+
+    let copied = 0;
+    for (const file of files) {
+      const src = path.join(toSyncFolder, file);
+      const dest = path.join(destFolder, file);
+      if (fs.statSync(src).isFile()) {
+        fs.copyFileSync(src, dest);
+        copied++;
+      }
+    }
+    return { success: true, copied };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// Fetch centerline mapping from local xlsx file
+ipcMain.handle('fetch-centerline', async () => {
+  try {
+    const possiblePaths = [
+      path.join(require('os').homedir(), 'OneDrive', 'Documents', 'TitleCRM', 'centerline_list_cleaned.xlsx'),
+      path.join(app.getPath('documents'), 'TitleCRM', 'centerline_list_cleaned.xlsx'),
+    ];
+
+    let xlsxPath = null;
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) { xlsxPath = p; break; }
+    }
+
+    if (!xlsxPath) return { success: false, error: 'centerline_list_cleaned.xlsx not found' };
+
+    // Parse xlsx manually - read as buffer and extract text
+    // We'll use a simple approach: convert to CSV via the xlsx binary format
+    // Since we can't use xlsx library, read raw and parse tab-delimited export
+    // Instead, use the CSV export approach - check for CSV version first
+    const csvPath = xlsxPath.replace('.xlsx', '.csv');
+    if (fs.existsSync(csvPath)) {
+      const raw = fs.readFileSync(csvPath, 'utf8');
+      const lines = raw.split('\n').filter(l => l.trim());
+      const mapping = {};
+      for (const line of lines.slice(1)) {
+        const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
+        const tractNumber = cols[0];
+        const apn = cols[2];
+        if (tractNumber && apn && apn !== 'No Numbr' && tractNumber.startsWith('HSW')) {
+          mapping[apn] = tractNumber;
+        }
+      }
+      return { success: true, mapping };
+    }
+
+    return { success: false, error: 'Please save centerline_list_cleaned.xlsx as CSV at the same location' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 });
