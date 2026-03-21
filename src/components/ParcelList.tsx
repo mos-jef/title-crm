@@ -2,27 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { Parcel, getAllParcels, toggleComplete, loadParcelsFromFirestore } from '../database';
 import BatchPropertyCardImporter from './BatchPropertyCardImporter';
 import BatchTaxImporter from './BatchTaxImporter';
-import ParcelRecovery from './ParcelRecovery';
+import { useAuth } from '../AuthContext';
 
 interface Props {
   onSelectParcel: (parcel: Parcel) => void;
+  showBatchTax?: boolean;
+  showBatchProp?: boolean;
+  onCloseBatchTax?: () => void;
+  onCloseBatchProp?: () => void;
 }
 
-export default function ParcelList({ onSelectParcel }: Props) {
+export default function ParcelList({ onSelectParcel, showBatchTax, showBatchProp, onCloseBatchTax, onCloseBatchProp }: Props) {
+  const { profile } = useAuth();
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
-  const [showBatchImporter, setShowBatchImporter] = useState(false);
-  const [showPropertyCardImporter, setShowPropertyCardImporter] = useState(false);
-  const [showRecovery, setShowRecovery] = useState(false);
 
-  function load() {
-    setParcels(getAllParcels());
-  }
+  let avatarSrc: string | undefined;
+  try { avatarSrc = require('../assets/avatar1.png'); } catch {}
 
-  useEffect(() => {
-    loadParcelsFromFirestore().then(() => load());
-  }, []);
+  function load() { setParcels(getAllParcels()); }
+  useEffect(() => { loadParcelsFromFirestore().then(() => load()); }, []);
 
   async function handleToggle(e: React.MouseEvent, id: string) {
     e.stopPropagation();
@@ -49,103 +49,101 @@ export default function ParcelList({ onSelectParcel }: Props) {
 
   return (
     <div>
-      <div className="page-header">
+      {/* Header with avatar and counts */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+          borderRadius: '0 40px 40px 0', padding: '8px 24px 8px 12px',
+        }}>
+          {avatarSrc && <img src={avatarSrc} alt="Avatar" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />}
+          <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>
+            {profile?.displayName || 'User'}
+          </span>
+        </div>
         <div>
-          <div className="page-title">My Parcels</div>
-          <div className="page-subtitle">
-            {pending} pending · {done} completed · {parcels.length} total
+          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>My Parcels</div>
+          <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+            {pending} pending &bull; {done} completed &bull; {parcels.length} total
           </div>
         </div>
-
-        <button
-          className="btn-secondary"
-          onClick={() => setShowBatchImporter(true)}
-          style={{ fontSize: 13, padding: '8px 14px' }}
-        >
-          📥 Batch Import Tax Cards
-        </button>
-        <button
-          className="btn-secondary"
-          onClick={() => setShowPropertyCardImporter(true)}
-          style={{ fontSize: 13, padding: '8px 14px' }}
-        >
-          🗺 Batch Import Property Cards
-        </button>
       </div>
 
-      <div className="filter-bar">
-        <input
-          className="filter-input"
-          placeholder="Search by APN, owner, county..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-        <select
-          className="filter-select"
-          value={filter}
-          onChange={e => setFilter(e.target.value as any)}
-        >
-          <option value="all">All</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
+      {/* Search bar */}
+      <div style={{ marginBottom: 16 }}>
+        <input className="filter-input" placeholder="Search by APN, Owner, County..."
+          value={search} onChange={e => setSearch(e.target.value)}
+          style={{ maxWidth: 400 }} />
+      </div>
+
+      {/* Dashboard banner */}
+      <div style={{
+        background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)',
+        borderRadius: '20px 20px 0 0', padding: '10px 24px',
+        display: 'flex', alignItems: 'center', gap: 40,
+        fontWeight: 700, fontSize: 16,
+      }}>
+        <span>Dashboard</span>
+        <span style={{ flex: 1 }}>Property</span>
+        <span style={{ width: 120 }}>Status</span>
+        <select value={filter} onChange={e => setFilter(e.target.value as any)}
+          style={{
+            background: 'transparent', border: 'none', color: 'inherit',
+            fontSize: 16, fontWeight: 700, cursor: 'pointer',
+          }}>
+          <option value="all" style={{ color: '#000' }}>Filter</option>
+          <option value="pending" style={{ color: '#000' }}>Pending</option>
+          <option value="completed" style={{ color: '#000' }}>Completed</option>
         </select>
       </div>
 
-      <div className="parcel-grid">
+      {/* Parcel rows */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
         {filtered.length === 0 && (
-          <div style={{ color: '#6b7280', textAlign: 'center', marginTop: 40 }}>
-            No parcels found. Click "+ New Parcel" to add your first one.
+          <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40 }}>
+            No parcels found. Click "New Parcel" to add your first one.
           </div>
         )}
         {filtered.map(parcel => (
-          <div
-            key={parcel.id}
-            className={`parcel-card ${parcel.completed ? 'completed' : ''}`}
-            onClick={() => onSelectParcel(parcel)}
-          >
-            <input
-              type="checkbox"
-              className="parcel-checkbox"
-              checked={parcel.completed}
-              onClick={e => handleToggle(e, parcel.id)}
-              onChange={() => {}}
-            />
-            <div className="parcel-info">
-              <div className="parcel-apn">{parcel.apn || 'No APN'}</div>
-              <div className="parcel-owner">
-                {parcel.assessedOwner || parcel.legalOwner || 'No owner listed'}
+          <div key={parcel.id} onClick={() => onSelectParcel(parcel)} style={{
+            display: 'flex', alignItems: 'center', gap: 16,
+            padding: '14px 24px',
+            background: 'var(--bg-card)',
+            borderBottom: '1px solid var(--border)',
+            cursor: 'pointer',
+            transition: 'background 0.1s',
+            opacity: parcel.completed ? 0.5 : 1,
+          }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-card)')}>
+            <input type="checkbox" checked={parcel.completed}
+              onClick={e => handleToggle(e, parcel.id)} onChange={() => {}}
+              style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--accent-primary)', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{parcel.apn || 'No APN'}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
+                {parcel.assessedOwner || parcel.legalOwner || 'No owner'}
               </div>
-              <div className="parcel-meta">
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
                 {parcel.county}{parcel.state ? `, ${parcel.state}` : ''}
-                {parcel.acres ? ` · ${parcel.acres} acres` : ''}
-                {parcel.tractType ? ` · ${parcel.tractType}` : ''}
+                {parcel.acres ? ` \u2022 ${parcel.acres} acres` : ''}
               </div>
             </div>
-            <span className={`status-badge ${parcel.completed ? 'done' : 'pending'}`}>
-              {parcel.completed ? '✓ Done' : 'Pending'}
+            <span style={{
+              width: 120, fontSize: 13, fontWeight: 500,
+              color: parcel.completed ? 'var(--badge-done-text)' : 'var(--badge-pending-text)',
+            }}>
+              {parcel.completed ? 'Completed' : 'Pending'}
             </span>
           </div>
         ))}
       </div>
 
-      {showBatchImporter && (
-        <BatchTaxImporter
-          onClose={() => setShowBatchImporter(false)}
-          onComplete={() => {
-            load();
-            setShowBatchImporter(false);
-          }}
-        />
+      {showBatchTax && onCloseBatchTax && (
+        <BatchTaxImporter onClose={onCloseBatchTax} onComplete={() => { load(); onCloseBatchTax(); }} />
       )}
-
-      {showPropertyCardImporter && (
-        <BatchPropertyCardImporter
-          onClose={() => setShowPropertyCardImporter(false)}
-          onComplete={() => {
-            load();
-            setShowPropertyCardImporter(false);
-          }}
-        />
+      {showBatchProp && onCloseBatchProp && (
+        <BatchPropertyCardImporter onClose={onCloseBatchProp} onComplete={() => { load(); onCloseBatchProp(); }} />
       )}
     </div>
   );
