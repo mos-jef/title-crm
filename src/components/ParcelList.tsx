@@ -1,3 +1,4 @@
+import searchIconUrl from '../assets/search.svg';
 import React, { useEffect, useState } from 'react';
 import { Parcel, getAllParcels, toggleComplete, loadParcelsFromFirestore } from '../database';
 import BatchPropertyCardImporter from './BatchPropertyCardImporter';
@@ -49,7 +50,7 @@ export default function ParcelList({ onSelectParcel, showBatchTax, showBatchProp
 
   return (
     <div>
-      {/* Header with avatar and counts */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12,
@@ -69,11 +70,17 @@ export default function ParcelList({ onSelectParcel, showBatchTax, showBatchProp
         </div>
       </div>
 
-      {/* Search bar */}
-      <div style={{ marginBottom: 16 }}>
+      {/* Search bar - wider with icon */}
+      <div style={{ marginBottom: 16, position: 'relative', maxWidth: 600 }}>
         <input className="filter-input" placeholder="Search by APN, Owner, County..."
           value={search} onChange={e => setSearch(e.target.value)}
-          style={{ maxWidth: 400 }} />
+          style={{ width: '100%', paddingRight: 44 }} />
+        <img src={searchIconUrl} alt="Search" style={{
+          position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+          width: 22, height: 22, objectFit: 'contain', opacity: 0.5,
+          filter: 'var(--icon-filter, none)',
+          pointerEvents: 'none',
+        }} />
       </div>
 
       {/* Dashboard banner */}
@@ -87,10 +94,7 @@ export default function ParcelList({ onSelectParcel, showBatchTax, showBatchProp
         <span style={{ flex: 1 }}>Property</span>
         <span style={{ width: 120 }}>Status</span>
         <select value={filter} onChange={e => setFilter(e.target.value as any)}
-          style={{
-            background: 'transparent', border: 'none', color: 'inherit',
-            fontSize: 16, fontWeight: 700, cursor: 'pointer',
-          }}>
+          style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
           <option value="all" style={{ color: '#000' }}>Filter</option>
           <option value="pending" style={{ color: '#000' }}>Pending</option>
           <option value="completed" style={{ color: '#000' }}>Completed</option>
@@ -106,13 +110,9 @@ export default function ParcelList({ onSelectParcel, showBatchTax, showBatchProp
         )}
         {filtered.map(parcel => (
           <div key={parcel.id} onClick={() => onSelectParcel(parcel)} style={{
-            display: 'flex', alignItems: 'center', gap: 16,
-            padding: '14px 24px',
-            background: 'var(--bg-card)',
-            borderBottom: '1px solid var(--border)',
-            cursor: 'pointer',
-            transition: 'background 0.1s',
-            opacity: parcel.completed ? 0.5 : 1,
+            display: 'flex', alignItems: 'center', gap: 16, padding: '14px 24px',
+            background: 'var(--bg-card)', borderBottom: '1px solid var(--border)',
+            cursor: 'pointer', transition: 'background 0.1s', opacity: parcel.completed ? 0.5 : 1,
           }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-card)')}>
@@ -121,18 +121,12 @@ export default function ParcelList({ onSelectParcel, showBatchTax, showBatchProp
               style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--accent-primary)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{parcel.apn || 'No APN'}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-                {parcel.assessedOwner || parcel.legalOwner || 'No owner'}
-              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{parcel.assessedOwner || parcel.legalOwner || 'No owner'}</div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-                {parcel.county}{parcel.state ? `, ${parcel.state}` : ''}
-                {parcel.acres ? ` \u2022 ${parcel.acres} acres` : ''}
+                {parcel.county}{parcel.state ? `, ${parcel.state}` : ''}{parcel.acres ? ` \u2022 ${parcel.acres} acres` : ''}
               </div>
             </div>
-            <span style={{
-              width: 120, fontSize: 13, fontWeight: 500,
-              color: parcel.completed ? 'var(--badge-done-text)' : 'var(--badge-pending-text)',
-            }}>
+            <span style={{ width: 120, fontSize: 13, fontWeight: 500, color: parcel.completed ? 'var(--badge-done-text)' : 'var(--badge-pending-text)' }}>
               {parcel.completed ? 'Completed' : 'Pending'}
             </span>
           </div>

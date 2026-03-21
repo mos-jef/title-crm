@@ -27,6 +27,7 @@ export const darkTheme = {
   '--badge-done-bg': '#1d2b1f',
   '--badge-done-text': '#a9dc76',
   '--icon-filter': 'brightness(0) saturate(100%) invert(77%) sepia(20%) saturate(1115%) hue-rotate(141deg) brightness(105%) contrast(102%)',
+  '--refresh-filter': 'brightness(0) saturate(100%) invert(11%) sepia(0%) saturate(176%) hue-rotate(279deg) brightness(104%) contrast(82%)',
 };
 
 export const lightTheme = {
@@ -36,9 +37,9 @@ export const lightTheme = {
   '--bg-card': '#fbf6ec',
   '--bg-input': '#f1eadb',
   '--border': '#d2c6b3',
-  '--text-primary': '#AD1111',
+  '--text-primary': '#DF0433',
   '--text-secondary': '#881E1E',
-  '--text-muted': '#C019D6',
+  '--text-muted': '#B84675',
   '--accent-blue': '#2f9fbc',
   '--accent': '#7dbd2f',
   '--accent-green': '#7dbd2f',
@@ -47,13 +48,14 @@ export const lightTheme = {
   '--accent-red': '#d94f70',
   '--accent-purple': '#8b63d9',
   '--accent-primary': '#7dbd2f',
-  '--btn-primary-bg': '#15BBBB',
-  '--btn-primary-text': '#fbf6ec',
+  '--btn-primary-bg': '#F7CD16',
+  '--btn-primary-text': '#4D4B47',
   '--badge-pending-bg': '#f6e7b8',
   '--badge-pending-text': '#8a6500',
   '--badge-done-bg': '#dff0c9',
   '--badge-done-text': '#4f8618',
-  '--icon-filter': 'brightness(0) saturate(100%) invert(37%) sepia(98%) saturate(980%) hue-rotate(89deg) brightness(96%) contrast(93%)',
+  '--icon-filter': 'brightness(0) saturate(100%) invert(22%) sepia(95%) saturate(2172%) hue-rotate(173deg) brightness(89%) contrast(98%)',
+  '--refresh-filter': 'brightness(0) saturate(100%) invert(11%) sepia(0%) saturate(176%) hue-rotate(279deg) brightness(104%) contrast(82%)',
 };
 
 export const midnightTheme = {
@@ -80,6 +82,7 @@ export const midnightTheme = {
   '--badge-done-bg': '#1f3320',
   '--badge-done-text': '#a6e22e',
   '--icon-filter': 'brightness(0) saturate(100%) invert(83%) sepia(43%) saturate(516%) hue-rotate(42deg) brightness(98%) contrast(89%)',
+  '--refresh-filter': 'brightness(0) saturate(100%) invert(11%) sepia(0%) saturate(176%) hue-rotate(279deg) brightness(104%) contrast(82%)',
 };
 
 
@@ -90,11 +93,9 @@ export const forestTheme = {
   '--bg-card': '#f8f3e7',
   '--bg-input': '#ede6d6',
   '--border': '#cfc5b1',
-
   '--text-primary': '#633D04',
   '--text-secondary': '#B13520',
   '--text-muted': '#4C5B8D',
-
   '--accent-blue': '#3aa8c1',
   '--accent': '#7fb414',
   '--accent-green': '#7fb414',
@@ -103,15 +104,14 @@ export const forestTheme = {
   '--accent-red': '#d14b72',
   '--accent-purple': '#8f67d9',
   '--accent-primary': '#7fb414',
-
   '--btn-primary-bg': '#7fb414',
   '--btn-primary-text': '#f8f3e7',
-
   '--badge-pending-bg': '#f1e2b8',
   '--badge-pending-text': '#7a5d00',
   '--badge-done-bg': '#dcecc8',
   '--badge-done-text': '#4f7d10',
   '--icon-filter': 'brightness(0) saturate(100%) invert(45%) sepia(95%) saturate(2842%) hue-rotate(17deg) brightness(109%) contrast(104%)',
+  '--refresh-filter': 'brightness(0) saturate(100%) invert(11%) sepia(0%) saturate(176%) hue-rotate(279deg) brightness(104%) contrast(82%)',
 };
 
 export const sepiaTheme = {

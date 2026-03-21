@@ -1,11 +1,9 @@
-import refreshIconUrl from '../assets/refreshicon.svg';
 import { useState } from 'react';
 import { Theme } from '../theme';
 import { UserProfile } from '../AuthContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import Settings from './Settings';
-
 
 interface Props {
   onNewParcel: () => void;
@@ -33,22 +31,54 @@ export default function Sidebar({
     ? require('../assets/logo-light.png')
     : require('../assets/logo-dark.png');
 
+  const bandStyle = {
+    background: 'var(--btn-primary-bg)',
+    color: 'var(--btn-primary-text)',
+    padding: '10px 16px',
+    fontSize: 18,
+    fontWeight: 700 as const,
+    margin: '0 -16px',
+    width: 'calc(100% + 32px)',
+  };
+
+  /* Home button style - to change its color per theme, add '--home-btn-bg' and
+     '--home-btn-text' to each theme in theme.ts. For example:
+       '--home-btn-bg': '#4f7d10',
+       '--home-btn-text': '#ffffff',
+     Then swap the background/color below to:
+       background: 'var(--home-btn-bg, var(--btn-primary-bg))',
+       color: 'var(--home-btn-text, var(--btn-primary-text))',
+     The fallback means it uses the primary button color if no custom color is set.
+
+     To move the Home button up or down, change the marginTop value below.
+     Currently set to 40px below the Admin View / Theme text links.
+  */
+  const homeButtonStyle = {
+    background: 'var(--home-btn-bg, var(--btn-primary-bg))',
+    color: 'var(--home-btn-text, var(--btn-primary-text))',
+    border: 'none',
+    borderRadius: 20,
+    padding: '7px 16px',
+    fontSize: 13,
+    cursor: 'pointer' as const,
+    alignSelf: 'center' as const,
+    marginTop: 40,  /* <-- change this to move the Home button up/down */
+  };
 
   return (
     <>
       <div className="sidebar">
-        {/* HOME link */}
-        <button className="sidebar-btn" onClick={onShowList}
-          style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
-          HOME
-        </button>
+        {/* Logo at the top - where HOME used to be */}
+        <div style={{ textAlign: 'center', padding: '0 8px', marginBottom: 16 }}>
+          <img src={logoSrc} alt="Co-Lab"
+            style={{ maxWidth: '100%', maxHeight: 60, objectFit: 'contain', cursor: 'pointer' }}
+            onClick={onShowList} />
+        </div>
 
-        {/* New Parcel button */}
-        <button className="sidebar-new-btn" onClick={onNewParcel}>
-          New Parcel
-        </button>
+        {/* New Parcel - header band */}
+        <div style={bandStyle}>New Parcel</div>
 
-        {/* Text CTAs */}
+        {/* Text CTAs under New Parcel */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 0' }}>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px 12px' }}
             onClick={onNewParcel}>Add New Parcel +</span>
@@ -62,12 +92,10 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Settings section */}
-        <button className="sidebar-new-btn" onClick={() => setShowSettings(true)}
-          style={{ marginTop: 20, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}>
-          Settings
-        </button>
+        {/* Settings - header band */}
+        <div style={{ ...bandStyle, marginTop: 16 }}>Settings</div>
 
+        {/* Text CTAs under Settings */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 0' }}>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px 12px' }}
             onClick={() => setShowSettings(true)}>Theme</span>
@@ -77,23 +105,13 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Refresh icon - centered */}
-        <div style={{ flex: 1 }} />
+        {/* Home button - 40px below the last text CTA */}
+        <button onClick={onShowList} style={homeButtonStyle}>
+          Home
+        </button>
 
-        {onRefresh && (
-        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-          <img src={refreshIconUrl} alt="Refresh" onClick={onRefresh}
-            style={{ width: 48, height: 48, cursor: 'pointer', objectFit: 'contain', opacity: 0.7, transition: 'opacity 0.15s', filter: 'var(--icon-filter, none)' }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '0.7')} />
-        </div>
-      )}
+        {/* Spacer pushes sign out to bottom */}
         <div style={{ flex: 1 }} />
-
-        {/* Logo */}
-        <div style={{ textAlign: 'center', padding: '8px 0' }}>
-          <img src={logoSrc} alt="Co-Lab" style={{ maxWidth: '80%', maxHeight: 50, objectFit: 'contain' }} />
-        </div>
 
         {/* Sign out */}
         <button onClick={handleSignOut} style={{
