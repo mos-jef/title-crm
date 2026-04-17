@@ -2,6 +2,8 @@ require("dotenv").config();
 const { app, BrowserWindow, ipcMain, shell, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const PARCELS_BASE =
+  process.env.TITLECRM_PARCELS_PATH || path.join("W:\\TitleCRM", "Parcels");
 
 let mainWindow;
 
@@ -33,12 +35,7 @@ app.on("window-all-closed", () => {
 // Create folder using APN as folder name
 ipcMain.handle("create-parcel-folder", async (event, { id, apn }) => {
   const folderName = apn ? apn.toString().replace(/[^a-zA-Z0-9\-_]/g, "_") : id;
-  const basePath = path.join(
-    app.getPath("documents"),
-    "TitleCRM",
-    "Parcels",
-    folderName,
-  );
+  const basePath = path.join(PARCELS_BASE, folderName);
   const subfolders = [
     "Maps",
     "Vesting Deed",
@@ -375,8 +372,7 @@ ipcMain.handle("scan-folder-for-pdfs", async (event, folderPath) => {
 
 // Scan the main Parcels directory and return all subfolders
 ipcMain.handle("scan-parcels-directory", async (event, customPath) => {
-  const basePath =
-    customPath || path.join(app.getPath("documents"), "TitleCRM", "Parcels");
+  const basePath = customPath || PARCELS_BASE;
   try {
     if (!fs.existsSync(basePath)) return { success: false, folders: [] };
     const entries = fs.readdirSync(basePath, { withFileTypes: true });
